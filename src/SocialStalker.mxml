@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Application xmlns:mx="http://www.adobe.com/2006/mxml"
+  layout="vertical"
+  backgroundGradientColors="[#CCCCCC, #FFFFFF]"
+  paddingBottom="5" paddingTop="5"
+  paddingLeft="5" paddingRight="5"
+  creationComplete="onCreationComplete()"
+  >
+<mx:Script><![CDATA[
+  import mx.controls.List;
+  import mx.events.ListEvent;
+  import mx.events.ResizeEvent;
+  import mx.collections.ArrayCollection;
+
+  import com.yahoo.maps.api.YahooMapEvent;
+  import com.yahoo.maps.api.YahooMap;
+  import com.yahoo.maps.api.markers.Marker;
+  import com.yahoo.maps.api.core.location.Address;
+  import com.yahoo.maps.api.core.location.LatLon;
+  import com.yahoo.maps.webservices.geocoder.GeocoderResult;
+  import com.yahoo.maps.webservices.geocoder.events.GeocoderEvent;
+
+  import twitter.api.Twitter;
+  import twitter.api.data.TwitterStatus;
+  import twitter.api.data.TwitterUser;
+  import twitter.api.events.TwitterEvent;
+
+  import markers.TwitterMarker;
+  
+  private static const BLURB:String =
+    "This is the MIT-licensed code for the Hello! Flex 3" +
+    " (http://manning.com) book example." +
+    " Code copyright (c) 2008 Dima Berastau and Peter" +
+    " Armstrong.";
+
+  //Get your own appid from the Yahoo! Developer Network:
+  //http://developer.yahoo.com/wsregapp/
+  private static const YAHOO_APP_ID:String =
+    "TWLRFYTV34GhMOfRCZubCe_LcKgnCKtK06BYJy3WNYSg0d.MaEk1483y4_OpzxjlJEk-";//Peter's
+    //"nHgB9PHV34FHNVE9kQAmzvIk_UIAZoWsv2Iqi77IzWJd5FHXee1yQWCrGnnimDuI4RzcQQ--";//Dima's
+
+  [Bindable]
+  private var map:YahooMap;
+  
+  [Bindable]
+  private var twitter:Twitter;
+  
+  [Bindable]
+  private var tweets:ArrayCollection;
+  
+  [Bindable]
+  private var users:ArrayCollection;
+
+  private function onCreationComplete():void {
+    map = new YahooMap();
+    map.addEventListener(
+      YahooMapEvent.MAP_INITIALIZE, onMapInitialize);
+    map.init(YAHOO_APP_ID, mapContainer.width,
+      mapContainer.height);
+    map.addPanControl();
+    map.addScaleBar();
+    map.addTypeWidget();
+    map.addZoomWidget();
+
+    mapContainer.addEventListener(ResizeEvent.RESIZE, onMapResize);
+    mapContainer.addChild(map);
+
+    twitter = new Twitter();
+    twitter.addEventListener(
+      TwitterEvent.ON_USER_TIMELINE_RESULT, onUserTimeline);
+    twitter.addEventListener(
+      TwitterEvent.ON_FRIENDS_RESULT, onFriends);
+  }
+  
+  private function onFriends(event:TwitterEvent):void {
+    users = new ArrayCollection(event.data as Array);
+  }
+  
+  private function onUserTimeline(event:TwitterEvent):void {
+    tweets = new ArrayCollection;
+    map.markerManager.removeAllMarkers();
+    
+    for each (var status:TwitterStatus in event.data) {
+      var text:String = status.text;
+      var points:Array = text.match(/@{(.*)}/);
+      var profileImageUrl:String = status.user.profileImageUrl;
+      var name:String = status.user.name;
+      var location:String = status.user.location;
+      
+      if (points != null && points.length > 0) {
+        status.text = text.replace(points[0], points[1]);
+        var address:Address = new Address(points[1]);
+        var marker:Marker = new TwitterMarker(
+          profileImageUrl, text.replace(points[0], points[1]));
+        marker.address = address;
+        map.markerManager.addMarker(marker);
+        geocodeAddress(address);
+      }
+      tweets.addItem(status);
+    }
+  }
+  
+  private function onUserSelect(event:ListEvent):void {
+    var user:TwitterUser =
+      List(event.currentTarget).selectedItem as TwitterUser;
+    twitter.loadUserTimeline(user.screenName);
+  }
+  
+  private function onMapResize(event:ResizeEvent):void {
+    map.setSize(mapContainer.width, mapContainer.height);
+  }
+
+  private function onMapInitialize(event:YahooMapEvent):void {
+    map.zoomLevel = 7;
+    var address:Address =
+      new Address("21 Water Street, Vancouver, BC");
+      //yes, it would be nice to use IP address, but can't do that client-side
+    geocodeAddress(address);
+  }
+  
+  private function loadTwitterUser():void {
+    map.markerManager.removeAllMarkers();
+    twitter.loadFriends(twitterName.text);
+  }
+  
+  private function geocodeAddress(address:Address):void {
+    address.addEventListener(
+      GeocoderEvent.GEOCODER_SUCCESS, onGeocoderSuccess);
+    address.geocode();
+  }
+  
+  private function onGeocoderSuccess(event:GeocoderEvent):void {
+    var result:GeocoderResult =
+      event.data.firstResult as GeocoderResult;
+    map.centerLatLon = result.latlon;
+  }
+]]></mx:Script>
+  <mx:ApplicationControlBar width="100%">
+    <mx:Label text="Twitter Name:"/>
+    <mx:TextInput id="twitterName" width="300"
+      enter="loadTwitterUser()"/>
+    <mx:Button label="Load" click="loadTwitterUser()"/>
+  </mx:ApplicationControlBar>
+  <mx:HBox width="100%" height="100%">
+    <mx:Panel title="Locations" width="60%" height="100%">
+      <!-- this is the map container, the YahooMap component extends Sprite, so you must add it to a UIComponent. -->
+      <mx:UIComponent id="mapContainer" width="100%"
+        height="100%"/>
+    </mx:Panel> 
+    <mx:VBox width="40%" height="100%">
+      <mx:Panel width="100%" height="50%" title="Friends">
+        <mx:List id="usersList" width="100%" height="100%"
+          backgroundAlpha="0" borderStyle="none"
+          wordWrap="true"
+          paddingTop="0" paddingBottom="0"
+          paddingLeft="0" paddingRight="0"
+          dataProvider="{users}"
+          itemRenderer="components.FriendBox"
+          change="onUserSelect(event)"/>
+      </mx:Panel>
+      <mx:Panel width="100%" height="50%" layout="absolute"
+        title="{usersList.selectedItem.name}'s Tweets">
+        <mx:List 
+          width="100%" height="100%"
+          backgroundAlpha="0" borderStyle="none"
+          paddingTop="0" paddingBottom="0"
+          paddingLeft="0" paddingRight="0"
+          dataProvider="{tweets}"
+          itemRenderer="components.ThumbnailBox"
+          wordWrap="true"
+          variableRowHeight="true"/>
+      </mx:Panel>    
+    </mx:VBox>
+  </mx:HBox>
+  <mx:HBox horizontalAlign="left">
+    <mx:Image source="http://l.yimg.com/us.yimg.com/i/us/nt/bdg/websrv_120_1.gif"/>
+    <mx:Label text="{BLURB}"/>
+  </mx:HBox>
+</mx:Application>
