@@ -51,11 +51,6 @@
   [Bindable]
   private var users:ArrayCollection;
 
-  private function loadTwitterUser():void {
-    map.markerManager.removeAllMarkers();
-    twitter.loadFriends(twitterName.text);
-  }
-  
   private function onCreationComplete():void {
     map = new YahooMap();
     map.addEventListener(
@@ -66,11 +61,6 @@
     map.addScaleBar();
     map.addTypeWidget();
     map.addZoomWidget();
-
-    var address:Address =
-      new Address("21 Water Street, Vancouver, BC");
-      //yes, it would be nice to use IP address, but can't do that client-side
-    geocodeAddress(address);
 
     mapContainer.addEventListener(ResizeEvent.RESIZE, onMapResize);
     mapContainer.addChild(map);
@@ -84,21 +74,6 @@
   
   private function onFriends(event:TwitterEvent):void {
     users = new ArrayCollection(event.data as Array);
-  }
-  
-  private function onMapInitialize(event:YahooMapEvent):void {}
-  
-  private function geocodeAddress(address:Address):void {
-    address.addEventListener(
-      GeocoderEvent.GEOCODER_SUCCESS, onGeocoderSuccess);
-    address.geocode();
-  }
-  
-  private function onGeocoderSuccess(event:GeocoderEvent):void {
-    var result:GeocoderResult =
-      event.data.firstResult as GeocoderResult;
-    map.zoomLevel = 7;
-    map.centerLatLon = result.latlon;
   }
   
   private function onUserTimeline(event:TwitterEvent):void {
@@ -133,6 +108,31 @@
   
   private function onMapResize(event:ResizeEvent):void {
     map.setSize(mapContainer.width, mapContainer.height);
+  }
+
+  private function onMapInitialize(event:YahooMapEvent):void {
+    map.zoomLevel = 7;
+    var address:Address =
+      new Address("21 Water Street, Vancouver, BC");
+      //yes, it would be nice to use IP address, but can't do that client-side
+    geocodeAddress(address);
+  }
+  
+  private function loadTwitterUser():void {
+    map.markerManager.removeAllMarkers();
+    twitter.loadFriends(twitterName.text);
+  }
+  
+  private function geocodeAddress(address:Address):void {
+    address.addEventListener(
+      GeocoderEvent.GEOCODER_SUCCESS, onGeocoderSuccess);
+    address.geocode();
+  }
+  
+  private function onGeocoderSuccess(event:GeocoderEvent):void {
+    var result:GeocoderResult =
+      event.data.firstResult as GeocoderResult;
+    map.centerLatLon = result.latlon;
   }
 ]]></mx:Script>
   <mx:ApplicationControlBar width="100%">
