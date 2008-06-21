@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<mx:Application xmlns:mx="http://www.adobe.com/2006/mxml" layout="vertical" 
+<mx:Application xmlns:mx="http://www.adobe.com/2006/mxml" layout="vertical"
+  backgroundGradientColors="[#CCCCCC, #FFFFFF]"
   paddingBottom="5" paddingLeft="5" paddingRight="5" paddingTop="5" horizontalAlign="left">
   <mx:Script>
     <![CDATA[
@@ -34,7 +35,8 @@
     
       private function load():void {
         // Get your own from the Yahoo! Developer Network @ http://developer.yahoo.com/wsregapp/
-        var appid:String = "nHgB9PHV34FHNVE9kQAmzvIk_UIAZoWsv2Iqi77IzWJd5FHXee1yQWCrGnnimDuI4RzcQQ--";
+        //var appid:String = "nHgB9PHV34FHNVE9kQAmzvIk_UIAZoWsv2Iqi77IzWJd5FHXee1yQWCrGnnimDuI4RzcQQ--";
+        var appid:String = "TWLRFYTV34GhMOfRCZubCe_LcKgnCKtK06BYJy3WNYSg0d.MaEk1483y4_OpzxjlJEk-";
                 
         if (map == null) {
           map = new YahooMap;
