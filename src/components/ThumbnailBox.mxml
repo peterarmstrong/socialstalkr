@@ -1,5 +1,0 @@
-<?xml version="1.0"?>
-<mx:HBox xmlns:mx="http://www.adobe.com/2006/mxml" width="100%" 
-  toolTip="{data.user.screenName} {data.text}, {data.createdAt}" horizontalScrollPolicy="off" paddingBottom="0" paddingLeft="4" paddingRight="4" paddingTop="4">
-  <mx:Text text="{data.text}"/>
-</mx:HBox>

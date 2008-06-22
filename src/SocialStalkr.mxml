@@ -12,6 +12,7 @@
   import mx.events.ResizeEvent;
   import mx.collections.ArrayCollection;
 
+  import com.yahoo.maps.api.MapTypes;
   import com.yahoo.maps.api.YahooMapEvent;
   import com.yahoo.maps.api.YahooMap;
   import com.yahoo.maps.api.markers.Marker;
@@ -25,7 +26,7 @@
   import twitter.api.data.TwitterUser;
   import twitter.api.events.TwitterEvent;
 
-  import markers.TwitterMarker;
+  import com.socialstalkr.components.TwitterMarker;
   
   private static const BLURB:String =
     "This is the MIT-licensed code for the Hello! Flex 3" +
@@ -40,45 +41,46 @@
     //"nHgB9PHV34FHNVE9kQAmzvIk_UIAZoWsv2Iqi77IzWJd5FHXee1yQWCrGnnimDuI4RzcQQ--";//Dima's
 
   [Bindable]
-  private var map:YahooMap;
+  private var _map:YahooMap;
   
   [Bindable]
-  private var twitter:Twitter;
+  private var _twitter:Twitter;
   
   [Bindable]
-  private var tweets:ArrayCollection;
+  private var _tweets:ArrayCollection;
   
   [Bindable]
-  private var users:ArrayCollection;
+  private var _users:ArrayCollection;
 
   private function onCreationComplete():void {
-    map = new YahooMap();
-    map.addEventListener(
+    _map = new YahooMap();
+    _map.addEventListener(
       YahooMapEvent.MAP_INITIALIZE, onMapInitialize);
-    map.init(YAHOO_APP_ID, mapContainer.width,
+    _map.init(YAHOO_APP_ID, mapContainer.width,
       mapContainer.height);
-    map.addPanControl();
-    map.addScaleBar();
-    map.addTypeWidget();
-    map.addZoomWidget();
+    _map.addPanControl();
+    _map.addScaleBar();
+    _map.addTypeWidget();
+    _map.addZoomWidget();
 
-    mapContainer.addEventListener(ResizeEvent.RESIZE, onMapResize);
-    mapContainer.addChild(map);
+    mapContainer.addEventListener(ResizeEvent.RESIZE,
+      onMapResize);
+    mapContainer.addChild(_map);
 
-    twitter = new Twitter();
-    twitter.addEventListener(
+    _twitter = new Twitter();
+    _twitter.addEventListener(
       TwitterEvent.ON_USER_TIMELINE_RESULT, onUserTimeline);
-    twitter.addEventListener(
+    _twitter.addEventListener(
       TwitterEvent.ON_FRIENDS_RESULT, onFriends);
   }
   
   private function onFriends(event:TwitterEvent):void {
-    users = new ArrayCollection(event.data as Array);
+    _users = new ArrayCollection(event.data as Array);
   }
   
   private function onUserTimeline(event:TwitterEvent):void {
-    tweets = new ArrayCollection;
-    map.markerManager.removeAllMarkers();
+    _tweets = new ArrayCollection;
+    _map.markerManager.removeAllMarkers();
     
     for each (var status:TwitterStatus in event.data) {
       var text:String = status.text;
@@ -93,25 +95,26 @@
         var marker:Marker = new TwitterMarker(
           profileImageUrl, text.replace(points[0], points[1]));
         marker.address = address;
-        map.markerManager.addMarker(marker);
+        _map.markerManager.addMarker(marker);
         geocodeAddress(address);
       }
-      tweets.addItem(status);
+      _tweets.addItem(status);
     }
   }
   
   private function onUserSelect(event:ListEvent):void {
     var user:TwitterUser =
       List(event.currentTarget).selectedItem as TwitterUser;
-    twitter.loadUserTimeline(user.screenName);
+    _twitter.loadUserTimeline(user.screenName);
   }
   
   private function onMapResize(event:ResizeEvent):void {
-    map.setSize(mapContainer.width, mapContainer.height);
+    _map.setSize(mapContainer.width, mapContainer.height);
   }
 
   private function onMapInitialize(event:YahooMapEvent):void {
-    map.zoomLevel = 7;
+    _map.mapType = MapTypes.HYBRID;
+    _map.zoomLevel = 7;
     var address:Address =
       new Address("21 Water Street, Vancouver, BC");
       //yes, it would be nice to use IP address, but can't do that client-side
@@ -119,8 +122,8 @@
   }
   
   private function loadTwitterUser():void {
-    map.markerManager.removeAllMarkers();
-    twitter.loadFriends(twitterName.text);
+    _map.markerManager.removeAllMarkers();
+    _twitter.loadFriends(twitterName.text);
   }
   
   private function geocodeAddress(address:Address):void {
@@ -132,41 +135,51 @@
   private function onGeocoderSuccess(event:GeocoderEvent):void {
     var result:GeocoderResult =
       event.data.firstResult as GeocoderResult;
-    map.centerLatLon = result.latlon;
+    _map.centerLatLon = result.latlon;
+  }
+  
+  private function formatTweet(item:Object):String {
+    var status:TwitterStatus = TwitterStatus(item);
+    return status.text + " at " +
+      dateFormatter.format(status.createdAt);
   }
 ]]></mx:Script>
+  <mx:DateFormatter id="dateFormatter"
+    formatString="L:NN A on EEEE, MMM. D"/>
   <mx:ApplicationControlBar width="100%">
     <mx:Label text="Twitter Name:"/>
     <mx:TextInput id="twitterName" width="300"
+      text="peterarmstrong"
       enter="loadTwitterUser()"/>
     <mx:Button label="Load" click="loadTwitterUser()"/>
   </mx:ApplicationControlBar>
   <mx:HBox width="100%" height="100%">
-    <mx:Panel title="Locations" width="60%" height="100%">
+    <mx:Panel title="Locations" width="100%" height="100%">
       <!-- this is the map container, the YahooMap component extends Sprite, so you must add it to a UIComponent. -->
       <mx:UIComponent id="mapContainer" width="100%"
         height="100%"/>
     </mx:Panel> 
-    <mx:VBox width="40%" height="100%">
+    <mx:VBox width="300" height="100%">
       <mx:Panel width="100%" height="50%" title="Friends">
         <mx:List id="usersList" width="100%" height="100%"
           backgroundAlpha="0" borderStyle="none"
           wordWrap="true"
           paddingTop="0" paddingBottom="0"
           paddingLeft="0" paddingRight="0"
-          dataProvider="{users}"
-          itemRenderer="components.FriendBox"
+          dataProvider="{_users}"
+          itemRenderer="com.socialstalkr.components.FriendBox"
           change="onUserSelect(event)"/>
       </mx:Panel>
       <mx:Panel width="100%" height="50%" layout="absolute"
         title="{usersList.selectedItem.name}'s Tweets">
         <mx:List 
+          id="tweetList"
           width="100%" height="100%"
           backgroundAlpha="0" borderStyle="none"
           paddingTop="0" paddingBottom="0"
           paddingLeft="0" paddingRight="0"
-          dataProvider="{tweets}"
-          itemRenderer="components.ThumbnailBox"
+          labelFunction="formatTweet"
+          dataProvider="{_tweets}"
           wordWrap="true"
           variableRowHeight="true"/>
       </mx:Panel>    

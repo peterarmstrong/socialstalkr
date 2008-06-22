@@ -1,4 +1,4 @@
-package markers {
+package com.socialstalkr.components {
   import com.yahoo.maps.api.markers.Marker;
   
   import flash.display.Loader;
