@@ -50,7 +50,7 @@
   private var _tweets:ArrayCollection;
   
   [Bindable]
-  private var _users:ArrayCollection;
+  private var _friends:ArrayCollection;
 
   private function onCreationComplete():void {
     _map = new YahooMap();
@@ -75,7 +75,7 @@
   }
   
   private function onFriends(event:TwitterEvent):void {
-    _users = new ArrayCollection(event.data as Array);
+    _friends = new ArrayCollection(event.data as Array);
   }
   
   private function onUserTimeline(event:TwitterEvent):void {
@@ -166,7 +166,7 @@
           wordWrap="true"
           paddingTop="0" paddingBottom="0"
           paddingLeft="0" paddingRight="0"
-          dataProvider="{_users}"
+          dataProvider="{_friends}"
           itemRenderer="com.socialstalkr.components.FriendBox"
           change="onUserSelect(event)"/>
       </mx:Panel>
