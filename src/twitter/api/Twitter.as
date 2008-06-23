@@ -1,5 +1,7 @@
 ﻿/*
-Twitter Library 2.0
+This is a fork of Twitter Library 2.0 from 
+http://code.google.com/p/twitterscript/source/checkout
+on 2008-06-20.
 */
 package twitter.api {
 	
@@ -284,7 +286,7 @@ package twitter.api {
 		
 		private function destroyHandler(e:Event):void
 		{
-			var r:TwitterEvent = new TwitterEvent (TwitterEvent.ON_DESOTRY);
+			var r:TwitterEvent = new TwitterEvent (TwitterEvent.ON_DESTROY);
 			r.data = "success";
 			dispatchEvent (r);
 		}

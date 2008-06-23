@@ -3,5 +3,6 @@
   width="100%" height="54">
   <mx:Image width="48" height="48"
     source="{data.profileImageUrl}"/>
-  <mx:Label text="{data.screenName} ({data.name})"/>
+  <mx:Text selectable="false"
+    htmlText="{data.screenName}&lt;br/&gt;{data.name}"/>
 </mx:HBox>
