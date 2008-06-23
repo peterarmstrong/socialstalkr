@@ -23,7 +23,7 @@ package com.socialstalkr.components {
       _shape = new Shape();
       _shape.graphics.lineStyle(1,0x666666);
       _shape.graphics.beginFill(0xFFFFFF,1);
-      _shape.graphics.drawRoundRect(5, 5, 150, 51, 0, 0);
+      _shape.graphics.drawRoundRect(5, 5, 250, 51, 0, 0);
       _shape.graphics.endFill();
       addChild(_shape);
 
@@ -39,6 +39,8 @@ package com.socialstalkr.components {
       _textField.defaultTextFormat =
         new TextFormat("Arial", 11, 0x000000, true);
       _textField.wordWrap = true;
+      _textField.width = 200;
+      _textField.height = 50;
       addChild(_textField);
     }
     
