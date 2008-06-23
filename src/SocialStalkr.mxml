@@ -82,26 +82,46 @@
   }
   
   private function onUserTimeline(event:TwitterEvent):void {
-    var tweets:ArrayCollection = new ArrayCollection();
-    _map.markerManager.removeAllMarkers();
-    
     if (_you == null) {
       if (event.data.length > 0) {
         var mostRecentStatus:TwitterStatus = event.data[0];
         _you = TwitterUser(mostRecentStatus.user);
       } else {
-        _you = new TwitterUser();
+        _you = new TwitterUser();//prevent NPE if no tweets
       }
       _selectedUser = _you;
     }
-    
+    var tweets:ArrayCollection = new ArrayCollection();
     for each (var status:TwitterStatus in event.data) {
+      tweets.addItem(status);
+    }
+    _selectedUser.tweets = tweets;
+    updateMarkersFromTweets();
+  }
+  
+  private function onUserSelect(event:ListEvent):void {
+    selectUser(List(event.currentTarget).selectedItem
+      as TwitterUser);
+  }
+  
+  private function selectUser(user:TwitterUser):void {
+    _selectedUser = user;
+    if (_selectedUser.tweets.length == 0) {
+      _twitter.loadUserTimeline(_selectedUser.screenName);
+    } else {
+      updateMarkersFromTweets();
+    }
+  }
+
+  private function updateMarkersFromTweets():void {
+    _map.markerManager.removeAllMarkers();
+    for each (var status:TwitterStatus in _selectedUser.tweets) {
       var text:String = status.text;
       var points:Array = text.match(/@{(.*)}/);
       var profileImageUrl:String = status.user.profileImageUrl;
       var name:String = status.user.name;
       var location:String = status.user.location;
-      
+
       if (points != null && points.length > 0) {
         status.text = text.replace(points[0], points[1]);
         var address:Address = new Address(points[1]);
@@ -109,19 +129,11 @@
           profileImageUrl, text.replace(points[0], points[1]));
         marker.address = address;
         _map.markerManager.addMarker(marker);
+        
+        //TODO - this is wasteful (only want to do for one)
         geocodeAddress(address);
       }
-      tweets.addItem(status);
     }
-    _selectedUser.tweets = tweets;
-  }
-  
-  private function onUserSelect(event:ListEvent):void {
-    _selectedUser =
-      List(event.currentTarget).selectedItem as TwitterUser;
-    _twitter.loadUserTimeline(_selectedUser.screenName);
-    
-    //TODO
   }
   
   private function onMapResize(event:ResizeEvent):void {
@@ -179,7 +191,7 @@
     <mx:VBox width="300" height="100%">
       <mx:Panel width="100%" title="You">
         <components:TwitterUserBox data="{_you}"
-          click="_selectedUser = _you"/>
+          click="selectUser(_you)"/>
       </mx:Panel>
       <mx:Panel width="100%" height="50%" title="Friends">
         <mx:List id="usersList" width="100%" height="100%"
