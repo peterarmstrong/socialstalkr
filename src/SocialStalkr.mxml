@@ -40,17 +40,19 @@
   private var _map:YahooMap;
   
   [Bindable]
-  private var _yourTwitterUser:XML;
-  
-  [Bindable]
-  private var _friends:ArrayCollection;
-  
-
-  [Bindable]
-  private var _selectedUser:XML;  
+  private var _selectedTwitterUser:XML;
 
   [Bindable]
   private var _selectedUserTweets:XMLList;
+  
+  [Bindable]
+  private var _friends:ArrayCollection;
+
+  [Bindable]
+  private var _selectedFriend:XML;  
+
+  [Bindable]
+  private var _selectedFriendTweets:XMLList;
 
 
   private function onCreationComplete():void {
@@ -78,13 +80,13 @@
       } else {
         _you = new TwitterUser();//prevent NPE if no tweets
       }
-      _selectedUser = _you;
+      _selectedFriend = _you;
     }
     var tweets:ArrayCollection = new ArrayCollection();
     for each (var status:TwitterStatus in event.data) {
       tweets.addItem(status);
     }
-    _selectedUser.tweets = tweets;
+    _selectedFriend.tweets = tweets;
     updateMarkersFromTweets();
   }
 
@@ -94,9 +96,9 @@
   }
   
   private function selectUser(user:TwitterUser):void {
-    _selectedUser = user;
-    if (_selectedUser.tweets.length == 0) {
-      _twitter.loadUserTimeline(_selectedUser.screenName);
+    _selectedFriend = user;
+    if (_selectedFriend.tweets.length == 0) {
+      _twitter.loadUserTimeline(_selectedFriend.screenName);
     } else {
       updateMarkersFromTweets();
     }
@@ -110,7 +112,7 @@
   private function updateMarkersFromTweets():void {
     _map.markerManager.removeAllMarkers();
     /*
-    for each (var status:TwitterStatus in _selectedUser.tweets) {
+    for each (var status:TwitterStatus in _selectedFriend.tweets) {
       var text:String = status.text;
       var points:Array = text.match(/@{(.*)}/);
       var profileImageUrl:String = status.user.profileImageUrl;
@@ -192,16 +194,18 @@
         " " + twDate.substr(11, 8));
   }
 
-  private function handleTwitterUserTimelineSvcResult(event:ResultEvent):void { 
+  private function handleTwitterUserTimelineSvcResult(
+    event:ResultEvent):void { 
     var resultXML:XML = XML(event.result);
-    trace("handleTwitterUserTimelineSvcResult:\n" + resultXML.toString()); 
     _selectedUserTweets = resultXML.children(); 
-    trace("  _selectedUserTweets " + _selectedUserTweets);
-    if (_yourTwitterUser == null) {
-      _selectedUser = XML(_selectedUserTweets[0].user);
-      trace("  _selectedUser " + _selectedUser);
-      _yourTwitterUser = _selectedUser;
-    }
+    _selectedTwitterUser = XML(_selectedUserTweets[0].user);
+  }
+
+  private function handleTwitterFriendTimelineSvcResult(
+    event:ResultEvent):void {
+    var resultXML:XML = XML(event.result);
+    _selectedFriendTweets = resultXML.children(); 
+    _selectedFriend = XML(_selectedFriendTweets[0].user);
   }
 
   private function handleTwitterFriendsSvcResult(event:ResultEvent):void { 
@@ -209,12 +213,18 @@
     trace("handleTwitterFriendsSvcResult:\n" + resultXML.toString()); 
   }
 ]]></mx:Script>
+
   <mx:HTTPService id="twitterUserTimelineSvc"
     resultFormat="e4x"
     result="handleTwitterUserTimelineSvcResult(event)"/>
-  <mx:XMLListCollection id="twitterUserTimelineXLC" 
+  <mx:XMLListCollection id="twitterUserTimelineXLC"
     source="{XMLList(twitterUserTimelineSvc.lastResult.children())}"/>
+
+  <mx:HTTPService id="twitterFriendTimelineSvc"
+    resultFormat="e4x"
+    result="handleTwitterFriendTimelineSvcResult(event)"/>
     
+        
   <mx:HTTPService id="twitterFriendsSvc"
     resultFormat="e4x"
     result="handleTwitterFriendsSvcResult(event)"/>
@@ -239,32 +249,59 @@
         height="100%"/>
     </mx:Panel> 
     <mx:VBox width="300" height="100%">
-      <mx:Panel width="100%" title="You">
-        <components:TwitterUserBox twitterUser="{_yourTwitterUser}"
-          click="selectUser(_yourTwitterUser)"/>
-      </mx:Panel>
-      <mx:Panel width="100%" height="50%" title="Friends">
-        <mx:List id="usersList" width="100%" height="100%"
-          backgroundAlpha="0" borderStyle="none"
-          wordWrap="true"
-          paddingTop="0" paddingBottom="0"
-          paddingLeft="0" paddingRight="0"
-          dataProvider="{_friends}"
-          itemRenderer="com.socialstalkr.components.TwitterUserBox"
-          change="onUserSelect(event)"/>
-      </mx:Panel>
-      <mx:Panel visible="{_selectedUser != null}"
-        width="100%" height="50%"
-        title="{_selectedUser.name}'s Tweets">
+      <mx:Panel width="100%"
+        title="{_selectedTwitterUser.name} ({_selectedTwitterUser.screen_name})">
+        <mx:Image width="48" height="48"
+          source="{_selectedTwitterUser.profile_image_url}"/>
         <mx:List 
-          id="tweetList"
-          width="100%" height="100%"
+          id="selectedUserTweetList"
+          width="100%" height="150"
           alternatingItemColors="[#EEEEEE, #FFFFFF]"
           borderStyle="none"
           paddingTop="0" paddingBottom="0"
           paddingLeft="0" paddingRight="0"
           labelFunction="formatTweet"
           dataProvider="{_selectedUserTweets}"
+          wordWrap="true"
+          variableRowHeight="true"/>
+      </mx:Panel>
+      
+      <mx:Panel width="100%" height="50%"
+        title="{_selectedTwitterUser.name} is Following">
+        <mx:List id="usersList" width="100%" height="100%"
+          backgroundAlpha="0" borderStyle="none"
+          wordWrap="true"
+          paddingTop="0" paddingBottom="0"
+          paddingLeft="0" paddingRight="0"
+          dataProvider="{twitterFriendsXLC}"
+          change="onUserSelect(event)">
+          <mx:itemRenderer>
+            <mx:Component>
+              <mx:HBox>
+                <mx:Image width="48" height="48"
+                  source="{data.profile_image_url}"/>
+                <mx:VBox>
+                  <mx:Label text="{data.screen_name}"/>
+                  <mx:Label text="{data.name}"/>
+                </mx:VBox>
+              </mx:HBox> 
+            </mx:Component> 
+          </mx:itemRenderer>
+        </mx:List>
+      </mx:Panel>
+
+      <mx:Panel visible="{_selectedFriend != null}"
+        width="100%" height="50%"
+        title="{_selectedFriend.name}'s Tweets">
+        <mx:List 
+          id="selectedFriendTweetList"
+          width="100%" height="100%"
+          alternatingItemColors="[#EEEEEE, #FFFFFF]"
+          borderStyle="none"
+          paddingTop="0" paddingBottom="0"
+          paddingLeft="0" paddingRight="0"
+          labelFunction="formatTweet"
+          dataProvider="{_selectedFriendTweets}"
           wordWrap="true"
           variableRowHeight="true"/>
       </mx:Panel>    
