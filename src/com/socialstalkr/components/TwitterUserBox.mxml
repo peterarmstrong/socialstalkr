@@ -1,8 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <mx:HBox xmlns:mx="http://www.adobe.com/2006/mxml"
   width="100%" height="54">
+<mx:Script>
+  <![CDATA[
+    [Bindable]
+    public var twitterUser:XML;
+  ]]>
+</mx:Script>
   <mx:Image width="48" height="48"
-    source="{data.profile_image_url}"/>
-  <mx:Text selectable="false"
-    htmlText="{data.screen_name}&lt;br/&gt;{data.name}"/>
+    source="{twitterUser.profile_image_url}"/>
+  <mx:VBox>
+    <mx:Label text="{twitterUser.screen_name}"/>
+    <mx:Label text="{twitterUser.name}"/>
+  </mx:VBox>
 </mx:HBox>
