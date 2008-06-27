@@ -46,14 +46,10 @@
   private var _selectedUserTweets:XMLList;
   
   [Bindable]
-  private var _friends:ArrayCollection;
-
-  [Bindable]
   private var _selectedFriend:XML;  
 
   [Bindable]
   private var _selectedFriendTweets:XMLList;
-
 
   private function onCreationComplete():void {
     _map = new YahooMap();
@@ -104,10 +100,6 @@
     }
   }
 */  
-  private function onUserSelect(event:ListEvent):void {
-  }
-  private function selectUser(user:XML):void {
-  }
 
   private function updateMarkersFromTweets():void {
     _map.markerManager.removeAllMarkers();
@@ -154,8 +146,17 @@
   }
   
   private function loadUserTimeline(userName:String):void {
-    twitterUserTimelineSvc.url = "http://twitter.com/statuses/user_timeline/" + userName + ".xml";
+    twitterUserTimelineSvc.url =
+      "http://twitter.com/statuses/user_timeline/" + userName + 
+      ".xml";
     twitterUserTimelineSvc.send();
+  }
+
+  private function loadFriendTimeline(userName:String):void {
+    twitterFriendTimelineSvc.url =
+      "http://twitter.com/statuses/user_timeline/" + userName +
+      ".xml";
+    twitterFriendTimelineSvc.send();
   }
 
   private function loadFriends(userName:String):void {
@@ -163,7 +164,10 @@
     twitterFriendsSvc.send();
   }
 
-
+  private function onUserSelect(event:ListEvent):void {
+    _selectedFriend = XML(List(event.currentTarget).selectedItem);
+    loadFriendTimeline(_selectedFriend.screen_name); 
+  }
   
   private function geocodeAddress(address:Address):void {
     address.addEventListener(
