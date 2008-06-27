@@ -10,6 +10,7 @@
   import mx.controls.List;
   import mx.events.ListEvent;
   import mx.events.ResizeEvent;
+  import mx.rpc.events.ResultEvent;
   import mx.collections.ArrayCollection;
 
   import com.yahoo.maps.api.MapTypes;
@@ -20,11 +21,6 @@
   import com.yahoo.maps.api.core.location.LatLon;
   import com.yahoo.maps.webservices.geocoder.GeocoderResult;
   import com.yahoo.maps.webservices.geocoder.events.GeocoderEvent;
-
-  import twitter.api.Twitter;
-  import twitter.api.data.TwitterStatus;
-  import twitter.api.data.TwitterUser;
-  import twitter.api.events.TwitterEvent;
 
   import com.socialstalkr.components.TwitterMarker;
   
@@ -44,16 +40,13 @@
   private var _map:YahooMap;
   
   [Bindable]
-  private var _twitter:Twitter;
-  
-  [Bindable]
-  private var _you:TwitterUser;
+  private var _yourTwitterUser:XML;
   
   [Bindable]
   private var _friends:ArrayCollection;
   
   [Bindable]
-  private var _selectedUser:TwitterUser;  
+  private var _selectedUser:XMLList;  
 
   private function onCreationComplete():void {
     _map = new YahooMap();
@@ -69,18 +62,9 @@
     mapContainer.addEventListener(ResizeEvent.RESIZE,
       onMapResize);
     mapContainer.addChild(_map);
+  }
 
-    _twitter = new Twitter();
-    _twitter.addEventListener(
-      TwitterEvent.ON_USER_TIMELINE_RESULT, onUserTimeline);
-    _twitter.addEventListener(
-      TwitterEvent.ON_FRIENDS_RESULT, onFriends);
-  }
-  
-  private function onFriends(event:TwitterEvent):void {
-    _friends = new ArrayCollection(event.data as Array);
-  }
-  
+/*  
   private function onUserTimeline(event:TwitterEvent):void {
     if (_you == null) {
       if (event.data.length > 0) {
@@ -98,7 +82,7 @@
     _selectedUser.tweets = tweets;
     updateMarkersFromTweets();
   }
-  
+
   private function onUserSelect(event:ListEvent):void {
     selectUser(List(event.currentTarget).selectedItem
       as TwitterUser);
@@ -112,9 +96,15 @@
       updateMarkersFromTweets();
     }
   }
+*/  
+  private function onUserSelect(event:ListEvent):void {
+  }
+  private function selectUser(user:XML):void {
+  }
 
   private function updateMarkersFromTweets():void {
     _map.markerManager.removeAllMarkers();
+    /*
     for each (var status:TwitterStatus in _selectedUser.tweets) {
       var text:String = status.text;
       var points:Array = text.match(/@{(.*)}/);
@@ -134,6 +124,7 @@
         geocodeAddress(address);
       }
     }
+    */
   }
   
   private function onMapResize(event:ResizeEvent):void {
@@ -141,7 +132,7 @@
   }
 
   private function onMapInitialize(event:YahooMapEvent):void {
-    _map.mapType = MapTypes.HYBRID;
+    //_map.mapType = MapTypes.HYBRID;
     _map.zoomLevel = 3;
     var address:Address =
       new Address("21 Water Street, Vancouver, BC");
@@ -151,9 +142,21 @@
   
   private function loadTwitterUser():void {
     _map.markerManager.removeAllMarkers();
-    _twitter.loadUserTimeline(twitterName.text);
-    _twitter.loadFriends(twitterName.text);
+    loadUserTimeline(twitterName.text);
+    loadFriends(twitterName.text);
   }
+  
+  private function loadUserTimeline(userName:String):void {
+    twitterUserTimelineSvc.url = "http://twitter.com/statuses/user_timeline/" + userName + ".xml";
+    twitterUserTimelineSvc.send();
+  }
+
+  private function loadFriends(userName:String):void {
+    twitterFriendsSvc.url = "http://twitter.com/statuses/friends/" + userName + ".xml";
+    twitterFriendsSvc.send();
+  }
+
+
   
   private function geocodeAddress(address:Address):void {
     address.addEventListener(
@@ -168,11 +171,42 @@
   }
   
   private function formatTweet(item:Object):String {
+    /*
     var status:TwitterStatus = TwitterStatus(item);
     return status.text + " at " +
       dateFormatter.format(status.createdAt);
+    */
+    return "";
   }
+
+  private function handleTwitterUserTimelineSvcResult(event:ResultEvent):void { 
+    var resultXML:XML = XML(event.result);
+    trace("handleTwitterUserTimelineSvcResult:\n" + resultXML.toString()); 
+    var xmlList:XMLList = resultXML.children(); 
+    _selectedUser = xmlList[0].user;
+    trace("  _selectedUser " + _selectedUser); 
+  }
+
+  private function handleTwitterFriendsSvcResult(event:ResultEvent):void { 
+    var resultXML:XML = XML(event.result); 
+    trace("handleTwitterFriendsSvcResult:\n" + resultXML.toString()); 
+  }
+
 ]]></mx:Script>
+
+
+  <mx:HTTPService id="twitterUserTimelineSvc"
+    resultFormat="e4x"
+    result="handleTwitterUserTimelineSvcResult(event)"/>
+  <mx:XMLListCollection id="twitterUserTimelineXLC" 
+    source="{XMLList(twitterUserTimelineSvc.lastResult.children())}"/>
+    
+  <mx:HTTPService id="twitterFriendsSvc"
+    resultFormat="e4x"
+    result="handleTwitterFriendsSvcResult(event)"/>
+  <mx:XMLListCollection id="twitterFriendsXLC" 
+    source="{XMLList(twitterFriendsSvc.lastResult.children())}"/>
+
   <mx:DateFormatter id="dateFormatter"
     formatString="L:NN A on EEEE, MMM. D"/>
   <mx:ApplicationControlBar width="100%">
@@ -190,8 +224,8 @@
     </mx:Panel> 
     <mx:VBox width="300" height="100%">
       <mx:Panel width="100%" title="You">
-        <components:TwitterUserBox data="{_you}"
-          click="selectUser(_you)"/>
+        <components:TwitterUserBox data="{_yourTwitterUser}"
+          click="selectUser(_yourTwitterUser)"/>
       </mx:Panel>
       <mx:Panel width="100%" height="50%" title="Friends">
         <mx:List id="usersList" width="100%" height="100%"

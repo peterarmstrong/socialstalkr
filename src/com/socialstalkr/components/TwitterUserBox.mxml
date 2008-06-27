@@ -2,7 +2,7 @@
 <mx:HBox xmlns:mx="http://www.adobe.com/2006/mxml"
   width="100%" height="54">
   <mx:Image width="48" height="48"
-    source="{data.profileImageUrl}"/>
+    source="{data.profile_image_url}"/>
   <mx:Text selectable="false"
-    htmlText="{data.screenName}&lt;br/&gt;{data.name}"/>
+    htmlText="{data.screen_name}&lt;br/&gt;{data.name}"/>
 </mx:HBox>
