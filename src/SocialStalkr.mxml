@@ -175,9 +175,9 @@
     _selectedFriend = XML(_selectedFriendTweets[0].user);
   }
 
-  private function handleTwitterFriendsSvcResult(event:ResultEvent):void { 
+  private function handleTwitterFriendsSvcResult(
+    event:ResultEvent):void { 
     var resultXML:XML = XML(event.result); 
-    trace("handleTwitterFriendsSvcResult:\n" + resultXML.toString()); 
   }
 ]]></mx:Script>
 
