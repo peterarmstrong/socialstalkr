@@ -33,17 +33,17 @@
   //Get your own appid from the Yahoo! Developer Network:
   //http://developer.yahoo.com/wsregapp/
   private static const YAHOO_APP_ID:String =
-    "TWLRFYTV34GhMOfRCZubCe_LcKgnCKtK06BYJy3WNYSg0d.MaEk1483y4_OpzxjlJEk-";//Peter's
-    //"nHgB9PHV34FHNVE9kQAmzvIk_UIAZoWsv2Iqi77IzWJd5FHXee1yQWCrGnnimDuI4RzcQQ--";//Dima's
+"TWLRFYTV34GhMOfRCZubCe_LcKgnCKtK06BYJy3WNYSg0d.MaEk1483y4_OpzxjlJEk-";//Peter's
+//"nHgB9PHV34FHNVE9kQAmzvIk_UIAZoWsv2Iqi77IzWJd5FHXee1yQWCrGnnimDuI4RzcQQ--";//Dima's
 
   [Bindable]
   private var _map:YahooMap;
   
   [Bindable]
-  private var _selectedTwitterUser:XML;
+  private var _twitterUser:XML;
 
   [Bindable]
-  private var _selectedUserTweets:XMLList;
+  private var _twitterUserTweets:XMLList;
   
   [Bindable]
   private var _selectedFriend:XML;  
@@ -97,7 +97,7 @@
     _map.zoomLevel = 3;
     var address:Address =
       new Address("21 Water Street, Vancouver, BC");
-      //yes, it would be nice to use IP address, but can't do that client-side
+      //yes, it would be nice to use IP, but can't client-side
     geocodeAddress(address);
   }
   
@@ -123,12 +123,13 @@
 
   private function loadFriends(userName:String):void {
     twitterFriendsSvc.url =
-      "http://twitter.com/statuses/friends/" + userName + ".xml";
+     "http://twitter.com/statuses/friends/" + userName + ".xml";
     twitterFriendsSvc.send();
   }
 
   private function onUserSelect(event:ListEvent):void {
-    _selectedFriend = XML(List(event.currentTarget).selectedItem);
+    _selectedFriend =
+      XML(List(event.currentTarget).selectedItem);
     loadFriendTimeline(_selectedFriend.screen_name); 
   }
   
@@ -164,8 +165,8 @@
   private function handleTwitterUserTimelineSvcResult(
     event:ResultEvent):void { 
     var resultXML:XML = XML(event.result);
-    _selectedUserTweets = resultXML.children(); 
-    _selectedTwitterUser = XML(_selectedUserTweets[0].user);
+    _twitterUserTweets = resultXML.children(); 
+    _twitterUser = XML(_twitterUserTweets[0].user);
   }
 
   private function handleTwitterFriendTimelineSvcResult(
@@ -174,31 +175,18 @@
     _selectedFriendTweets = resultXML.children(); 
     _selectedFriend = XML(_selectedFriendTweets[0].user);
   }
-
-  private function handleTwitterFriendsSvcResult(
-    event:ResultEvent):void { 
-    var resultXML:XML = XML(event.result); 
-  }
 ]]></mx:Script>
-
   <mx:HTTPService id="twitterUserTimelineSvc"
     resultFormat="e4x"
     result="handleTwitterUserTimelineSvcResult(event)"/>
-  <mx:XMLListCollection id="twitterUserTimelineXLC"
-    source="{XMLList(twitterUserTimelineSvc.lastResult.children())}"/>
+
+  <mx:HTTPService id="twitterFriendsSvc" resultFormat="e4x"/>
+  <mx:XMLListCollection id="twitterFriendsXLC" 
+   source="{XMLList(twitterFriendsSvc.lastResult.children())}"/>
 
   <mx:HTTPService id="twitterFriendTimelineSvc"
     resultFormat="e4x"
     result="handleTwitterFriendTimelineSvcResult(event)"/>
-    
-        
-  <mx:HTTPService id="twitterFriendsSvc"
-    resultFormat="e4x"
-    result="handleTwitterFriendsSvcResult(event)"/>
-  <mx:XMLListCollection id="twitterFriendsXLC" 
-    source="{XMLList(twitterFriendsSvc.lastResult.children())}"/>
-
-
 
   <mx:DateFormatter id="dateFormatter"
     formatString="L:NN A on EEEE, MMM. D"/>
@@ -211,15 +199,14 @@
   </mx:ApplicationControlBar>
   <mx:HBox width="100%" height="100%">
     <mx:Panel title="Locations" width="100%" height="100%">
-      <!-- this is the map container, the YahooMap component extends Sprite, so you must add it to a UIComponent. -->
       <mx:UIComponent id="mapContainer" width="100%"
         height="100%"/>
     </mx:Panel> 
     <mx:VBox width="300" height="100%">
       <mx:Panel width="100%"
-        title="{_selectedTwitterUser.name} ({_selectedTwitterUser.screen_name})">
+      title="{_twitterUser.name} ({_twitterUser.screen_name})">
         <mx:Image width="48" height="48"
-          source="{_selectedTwitterUser.profile_image_url}"/>
+          source="{_twitterUser.profile_image_url}"/>
         <mx:List 
           id="selectedUserTweetList"
           width="100%" height="150"
@@ -228,14 +215,14 @@
           paddingTop="0" paddingBottom="0"
           paddingLeft="0" paddingRight="0"
           labelFunction="formatTweet"
-          dataProvider="{_selectedUserTweets}"
-          change="locateTweet(XML(selectedUserTweetList.selectedItem))"
+          dataProvider="{_twitterUserTweets}"
+change="locateTweet(XML(selectedUserTweetList.selectedItem))"
           wordWrap="true"
           variableRowHeight="true"/>
       </mx:Panel>
       
       <mx:Panel width="100%" height="50%"
-        title="{_selectedTwitterUser.name} is Following">
+        title="{_twitterUser.name} is Following">
         <mx:List id="usersList" width="100%" height="100%"
           backgroundAlpha="0" borderStyle="none"
           wordWrap="true"
@@ -246,14 +233,30 @@
           <mx:itemRenderer>
             <mx:Component>
               <mx:HBox>
+                <mx:Script>
+                  <![CDATA[
+                    [Bindable]
+                    private var _value:XML;
+                    
+                    [Bindable]
+                    public override function set data(
+                    value:Object):void {
+                      _value = XML(value);
+                    }
+                    
+                    public override function get data():Object {
+                      return _value;
+                    }
+                  ]]>
+                </mx:Script>
                 <mx:Image width="48" height="48"
-                  source="{data.profile_image_url}"/>
+                  source="{_value.profile_image_url}"/>
                 <mx:VBox>
-                  <mx:Label text="{data.name}"/>
+                  <mx:Label text="{_value.name}"/>
                   <mx:Label fontStyle="italic"
-                    text="({data.screen_name})"/>
+                    text="({_value.screen_name})"/>
                 </mx:VBox>
-              </mx:HBox> 
+              </mx:HBox>
             </mx:Component> 
           </mx:itemRenderer>
         </mx:List>
@@ -271,14 +274,15 @@
           paddingLeft="0" paddingRight="0"
           labelFunction="formatTweet"
           dataProvider="{_selectedFriendTweets}"
-          change="locateTweet(XML(selectedFriendTweetList.selectedItem))"
+change="locateTweet(XML(selectedFriendTweetList.selectedItem))"
           wordWrap="true"
           variableRowHeight="true"/>
       </mx:Panel>    
     </mx:VBox>
   </mx:HBox>
   <mx:HBox horizontalAlign="left">
-    <mx:Image source="http://l.yimg.com/us.yimg.com/i/us/nt/bdg/websrv_120_1.gif"/>
+    <mx:Image
+source="http://l.yimg.com/us.yimg.com/i/us/nt/bdg/websrv_120_1.gif"/>
     <mx:Label text="{BLURB}"/>
   </mx:HBox>
 </mx:Application>
