@@ -27,8 +27,8 @@
   private static const BLURB:String =
     "This is the MIT-licensed code for the Hello! Flex 3" +
     " (http://manning.com) book example." +
-    " Code copyright (c) 2008 Dima Berastau and Peter" +
-    " Armstrong.";
+    " Code copyright (c) 2008 Peter Armstrong and" +
+    " Dima Berastau.";
 
   //Get your own appid from the Yahoo! Developer Network:
   //http://developer.yahoo.com/wsregapp/
@@ -66,64 +66,26 @@
       onMapResize);
     mapContainer.addChild(_map);
   }
-
-/*  
-  private function onUserTimeline(event:TwitterEvent):void {
-    if (_you == null) {
-      if (event.data.length > 0) {
-        var mostRecentStatus:TwitterStatus = event.data[0];
-        _you = TwitterUser(mostRecentStatus.user);
-      } else {
-        _you = new TwitterUser();//prevent NPE if no tweets
-      }
-      _selectedFriend = _you;
-    }
-    var tweets:ArrayCollection = new ArrayCollection();
-    for each (var status:TwitterStatus in event.data) {
-      tweets.addItem(status);
-    }
-    _selectedFriend.tweets = tweets;
-    updateMarkersFromTweets();
-  }
-
-  private function onUserSelect(event:ListEvent):void {
-    selectUser(List(event.currentTarget).selectedItem
-      as TwitterUser);
-  }
   
-  private function selectUser(user:TwitterUser):void {
-    _selectedFriend = user;
-    if (_selectedFriend.tweets.length == 0) {
-      _twitter.loadUserTimeline(_selectedFriend.screenName);
-    } else {
-      updateMarkersFromTweets();
-    }
-  }
-*/  
-
-  private function updateMarkersFromTweets():void {
+  private function locateTweet(tweet:XML):void {
     _map.markerManager.removeAllMarkers();
-    /*
-    for each (var status:TwitterStatus in _selectedFriend.tweets) {
-      var text:String = status.text;
-      var points:Array = text.match(/@{(.*)}/);
-      var profileImageUrl:String = status.user.profileImageUrl;
-      var name:String = status.user.name;
-      var location:String = status.user.location;
 
-      if (points != null && points.length > 0) {
-        status.text = text.replace(points[0], points[1]);
-        var address:Address = new Address(points[1]);
-        var marker:Marker = new TwitterMarker(
-          profileImageUrl, text.replace(points[0], points[1]));
-        marker.address = address;
-        _map.markerManager.addMarker(marker);
-        
-        //TODO - this is wasteful (only want to do for one)
-        geocodeAddress(address);
-      }
+    trace("locateTweet: " + tweet);
+
+    var text:String = tweet.text;
+    var points:Array = text.match(/@{(.*)}/);
+    var profileImageUrl:String = tweet.user.profile_image_url;
+    var name:String = tweet.user.name;
+    var location:String = tweet.user.location;
+  
+    if (points != null && points.length > 0) {
+      var address:Address = new Address(points[1]);
+      var marker:Marker = new TwitterMarker(
+        profileImageUrl, text.replace(points[0], points[1]));
+      marker.address = address;
+      _map.markerManager.addMarker(marker);
+      geocodeAddress(address);
     }
-    */
   }
   
   private function onMapResize(event:ResizeEvent):void {
@@ -160,7 +122,8 @@
   }
 
   private function loadFriends(userName:String):void {
-    twitterFriendsSvc.url = "http://twitter.com/statuses/friends/" + userName + ".xml";
+    twitterFriendsSvc.url =
+      "http://twitter.com/statuses/friends/" + userName + ".xml";
     twitterFriendsSvc.send();
   }
 
@@ -266,6 +229,7 @@
           paddingLeft="0" paddingRight="0"
           labelFunction="formatTweet"
           dataProvider="{_selectedUserTweets}"
+          change="locateTweet(XML(selectedUserTweetList.selectedItem))"
           wordWrap="true"
           variableRowHeight="true"/>
       </mx:Panel>
@@ -285,8 +249,9 @@
                 <mx:Image width="48" height="48"
                   source="{data.profile_image_url}"/>
                 <mx:VBox>
-                  <mx:Label text="{data.screen_name}"/>
                   <mx:Label text="{data.name}"/>
+                  <mx:Label fontStyle="italic"
+                    text="({data.screen_name})"/>
                 </mx:VBox>
               </mx:HBox> 
             </mx:Component> 
@@ -306,6 +271,7 @@
           paddingLeft="0" paddingRight="0"
           labelFunction="formatTweet"
           dataProvider="{_selectedFriendTweets}"
+          change="locateTweet(XML(selectedFriendTweetList.selectedItem))"
           wordWrap="true"
           variableRowHeight="true"/>
       </mx:Panel>    
