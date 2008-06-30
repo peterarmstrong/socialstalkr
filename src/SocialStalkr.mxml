@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <mx:Application xmlns:mx="http://www.adobe.com/2006/mxml"
+  xmlns:components="com.socialstalkr.components.*"
   layout="vertical"
   backgroundGradientColors="[#CCCCCC, #FFFFFF]"
   paddingBottom="5" paddingTop="5"
   paddingLeft="5" paddingRight="5"
-  creationComplete="onCreationComplete()"
-  xmlns:components="com.socialstalkr.components.*">
+  creationComplete="onCreationComplete()">
 <mx:Script><![CDATA[
   import mx.controls.List;
   import mx.events.ListEvent;
@@ -30,11 +30,8 @@
     " Code copyright (c) 2008 Peter Armstrong and" +
     " Dima Berastau.";
 
-  //Get your own appid from the Yahoo! Developer Network:
-  //http://developer.yahoo.com/wsregapp/
   private static const YAHOO_APP_ID:String =
-"TWLRFYTV34GhMOfRCZubCe_LcKgnCKtK06BYJy3WNYSg0d.MaEk1483y4_OpzxjlJEk-";//Peter's
-//"nHgB9PHV34FHNVE9kQAmzvIk_UIAZoWsv2Iqi77IzWJd5FHXee1yQWCrGnnimDuI4RzcQQ--";//Dima's
+"TWLRFYTV34GhMOfRCZubCe_LcKgnCKtK06BYJy3WNYSg0d.MaEk1483y4_OpzxjlJEk-";
 
   [Bindable]
   private var _map:YahooMap;
@@ -69,9 +66,6 @@
   
   private function locateTweet(tweet:XML):void {
     _map.markerManager.removeAllMarkers();
-
-    trace("locateTweet: " + tweet);
-
     var text:String = tweet.text;
     var points:Array = text.match(/@{(.*)}/);
     var profileImageUrl:String = tweet.user.profile_image_url;
@@ -93,46 +87,12 @@
   }
 
   private function onMapInitialize(event:YahooMapEvent):void {
-    //_map.mapType = MapTypes.HYBRID;
     _map.zoomLevel = 3;
     var address:Address =
       new Address("21 Water Street, Vancouver, BC");
-      //yes, it would be nice to use IP, but can't client-side
     geocodeAddress(address);
   }
-  
-  private function loadTwitterUser():void {
-    _map.markerManager.removeAllMarkers();
-    loadUserTimeline(twitterName.text);
-    loadFriends(twitterName.text);
-  }
-  
-  private function loadUserTimeline(userName:String):void {
-    twitterUserTimelineSvc.url =
-      "http://twitter.com/statuses/user_timeline/" + userName + 
-      ".xml";
-    twitterUserTimelineSvc.send();
-  }
 
-  private function loadFriendTimeline(userName:String):void {
-    twitterFriendTimelineSvc.url =
-      "http://twitter.com/statuses/user_timeline/" + userName +
-      ".xml";
-    twitterFriendTimelineSvc.send();
-  }
-
-  private function loadFriends(userName:String):void {
-    twitterFriendsSvc.url =
-     "http://twitter.com/statuses/friends/" + userName + ".xml";
-    twitterFriendsSvc.send();
-  }
-
-  private function onUserSelect(event:ListEvent):void {
-    _selectedFriend =
-      XML(List(event.currentTarget).selectedItem);
-    loadFriendTimeline(_selectedFriend.screen_name); 
-  }
-  
   private function geocodeAddress(address:Address):void {
     address.addEventListener(
       GeocoderEvent.GEOCODER_SUCCESS, onGeocoderSuccess);
@@ -145,27 +105,30 @@
     _map.centerLatLon = result.latlon;
   }
   
-  private function formatTweet(item:Object):String {
-    var status:XML = XML(item);
-    return status.text + " at " + dateFormatter.format(
-      dateFromTwitterDate(status.created_at));
+  private function loadTwitterUser():void {
+    twitterUserTimelineSvc.url =
+      "http://twitter.com/statuses/user_timeline/" +
+      twitterName.text + ".xml";
+    twitterUserTimelineSvc.send();
+    twitterFriendsSvc.url =
+      "http://twitter.com/statuses/friends/" +
+      twitterName.text + ".xml";
+    twitterFriendsSvc.send();
   }
 
-  //This is based on the twitterscript API (the TwitterStatus
-  //class's makeDate function). Dates come back like this
-  //inside the <created_at> element:
-  //Fri Jun 27 18:08:58 +0000 2008
-  private function dateFromTwitterDate(twDate:String):Date {
-    return new Date(
-        twDate.substr(0,10) +
-        " " + twDate.substr(twDate.length - 4, twDate.length) +
-        " " + twDate.substr(11, 8));
+  private function onUserSelect(event:ListEvent):void {
+    _selectedFriend =
+      XML(List(event.currentTarget).selectedItem);
+    twitterFriendTimelineSvc.url =
+      "http://twitter.com/statuses/user_timeline/" +
+      _selectedFriend.screen_name + ".xml";
+    twitterFriendTimelineSvc.send();
   }
 
   private function handleTwitterUserTimelineSvcResult(
     event:ResultEvent):void { 
     var resultXML:XML = XML(event.result);
-    _twitterUserTweets = resultXML.children(); 
+    _twitterUserTweets = resultXML.children();
     _twitterUser = XML(_twitterUserTweets[0].user);
   }
 
@@ -175,11 +138,24 @@
     _selectedFriendTweets = resultXML.children(); 
     _selectedFriend = XML(_selectedFriendTweets[0].user);
   }
+  
+  private function formatTweet(item:Object):String {
+    var status:XML = XML(item);
+    return status.text + " at " + dateFormatter.format(
+      dateFromTwitterDate(status.created_at));
+  }
+
+  private function dateFromTwitterDate(twDate:String):Date {
+    return new Date(
+        twDate.substr(0,10) +
+        " " + twDate.substr(twDate.length - 4, twDate.length) +
+        " " + twDate.substr(11, 8));
+  }
 ]]></mx:Script>
   <mx:HTTPService id="twitterUserTimelineSvc"
     resultFormat="e4x"
     result="handleTwitterUserTimelineSvcResult(event)"/>
-
+    
   <mx:HTTPService id="twitterFriendsSvc" resultFormat="e4x"/>
   <mx:XMLListCollection id="twitterFriendsXLC" 
    source="{XMLList(twitterFriendsSvc.lastResult.children())}"/>
@@ -190,6 +166,7 @@
 
   <mx:DateFormatter id="dateFormatter"
     formatString="L:NN A on EEEE, MMM. D"/>
+
   <mx:ApplicationControlBar width="100%">
     <mx:Label text="Twitter Name:"/>
     <mx:TextInput id="twitterName" width="300"
@@ -197,6 +174,7 @@
       enter="loadTwitterUser()"/>
     <mx:Button label="Load" click="loadTwitterUser()"/>
   </mx:ApplicationControlBar>
+  
   <mx:HBox width="100%" height="100%">
     <mx:Panel title="Locations" width="100%" height="100%">
       <mx:UIComponent id="mapContainer" width="100%"
@@ -207,21 +185,18 @@
       title="{_twitterUser.name} ({_twitterUser.screen_name})">
         <mx:Image width="48" height="48"
           source="{_twitterUser.profile_image_url}"/>
-        <mx:List 
-          id="selectedUserTweetList"
+        <mx:List id="selectedUserTweetList"
           width="100%" height="150"
+          labelField="text"
           alternatingItemColors="[#EEEEEE, #FFFFFF]"
-          borderStyle="none"
-          paddingTop="0" paddingBottom="0"
-          paddingLeft="0" paddingRight="0"
-          labelFunction="formatTweet"
-          dataProvider="{_twitterUserTweets}"
-change="locateTweet(XML(selectedUserTweetList.selectedItem))"
           wordWrap="true"
-          variableRowHeight="true"/>
+          variableRowHeight="true"
+          labelFunction="formatTweet"
+change="locateTweet(XML(selectedUserTweetList.selectedItem))"
+          dataProvider="{_twitterUserTweets}"/>
       </mx:Panel>
-      
-      <mx:Panel width="100%" height="50%"
+
+      <mx:Panel width="100%" height="250"
         title="{_twitterUser.name} is Following">
         <mx:List id="usersList" width="100%" height="100%"
           backgroundAlpha="0" borderStyle="none"
@@ -229,7 +204,8 @@ change="locateTweet(XML(selectedUserTweetList.selectedItem))"
           paddingTop="0" paddingBottom="0"
           paddingLeft="0" paddingRight="0"
           dataProvider="{twitterFriendsXLC}"
-          change="onUserSelect(event)">
+          change="onUserSelect(event)"
+          >
           <mx:itemRenderer>
             <mx:Component>
               <mx:HBox>
@@ -261,9 +237,9 @@ change="locateTweet(XML(selectedUserTweetList.selectedItem))"
           </mx:itemRenderer>
         </mx:List>
       </mx:Panel>
-
+    
       <mx:Panel visible="{_selectedFriend != null}"
-        width="100%" height="50%"
+        width="100%" height="100%"
         title="{_selectedFriend.name}'s Tweets">
         <mx:List 
           id="selectedFriendTweetList"
@@ -277,7 +253,7 @@ change="locateTweet(XML(selectedUserTweetList.selectedItem))"
 change="locateTweet(XML(selectedFriendTweetList.selectedItem))"
           wordWrap="true"
           variableRowHeight="true"/>
-      </mx:Panel>    
+      </mx:Panel>
     </mx:VBox>
   </mx:HBox>
   <mx:HBox horizontalAlign="left">
